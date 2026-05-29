@@ -62,6 +62,47 @@
                 transform: none;
             }
         }
+
+        .teaser-video {
+            position: relative;
+        }
+
+        /* Hide play/pause indicators for teaser video */
+        .teaser-video::after,
+        .teaser-video.paused::after,
+        .teaser-video.playing::after {
+            display: none !important;
+        }
+
+        /* Sound toggle button for teaser video */
+        .sound-toggle {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            background: rgba(0, 0, 0, 0.6);
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            transition: all 0.3s ease;
+            z-index: 20;
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+        }
+        .sound-toggle:hover { background: rgba(0, 0, 0, 0.8); transform: scale(1.1); }
+        .sound-toggle:active { transform: scale(0.95); }
+        .sound-toggle .sound-on { display: none; }
+        .sound-toggle .sound-off { display: block; }
+        .sound-toggle.unmuted .sound-on { display: block; }
+        .sound-toggle.unmuted .sound-off { display: none; }
+        @media (max-width: 768px) {
+            .sound-toggle { width: 36px; height: 36px; font-size: 16px; top: 10px; right: 10px; }
+        }
     </style>
 </head>
 <body>
@@ -123,6 +164,22 @@
     </div>
     
     <div class="container">
+        <!-- Teaser Section -->
+        <section class="section-container teaser-section" style="margin-top: 0;">
+            <h2 style="margin-top: 0.5rem;">Teaser</h2>
+            <div class="divider"></div>
+            <div class="video-container teaser-video">
+                <video loop playsinline autoplay>
+                    <source src="teaser.mp4" type="video/mp4">
+                    Your browser does not support the video tag.
+                </video>
+                <button class="sound-toggle" aria-label="Toggle sound">
+                    <span class="sound-off">🔇</span>
+                    <span class="sound-on">🔊</span>
+                </button>
+            </div>
+        </section>
+
         <!-- Qualitative Results Section -->
         <section class="section-container qualitative-section">
             <h2 style="margin-top: 1.5rem;">Qualitative Results</h2>
@@ -755,6 +812,28 @@
     </div>
 
     <script>
+        // Teaser video - autoplay with sound toggle
+        document.addEventListener('DOMContentLoaded', function() {
+            const teaserVideo = document.querySelector('.teaser-video video');
+            const soundToggle = document.querySelector('.sound-toggle');
+            if (teaserVideo) {
+                teaserVideo.muted = false;
+                if (soundToggle) soundToggle.classList.add('unmuted');
+                teaserVideo.play().catch(() => {
+                    teaserVideo.muted = true;
+                    if (soundToggle) soundToggle.classList.remove('unmuted');
+                    teaserVideo.play().catch(() => {});
+                });
+                if (soundToggle) {
+                    soundToggle.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        teaserVideo.muted = !teaserVideo.muted;
+                        soundToggle.classList.toggle('unmuted', !teaserVideo.muted);
+                    });
+                }
+            }
+        });
+
         // Set different playback speeds based on video duration group
         document.addEventListener('DOMContentLoaded', function() {
             const durationGroups = document.querySelectorAll('.duration-group');
@@ -777,13 +856,21 @@
                 });
             });
             
-            // Set custom demo videos to 2x speed
-            const customVideos = document.querySelector('.section-container');
-            if (customVideos) {
-                customVideos.querySelectorAll('video').forEach(video => {
+            // Set custom demo videos to 2x speed (exclude teaser)
+            document.querySelectorAll('.section-container:not(.teaser-section)').forEach(section => {
+                section.querySelectorAll('video').forEach(video => {
                     video.playbackRate = 2.0;
                 });
-            }
+            });
+
+            // Teaser video stays at 1x — enforce on every play event
+            document.querySelectorAll('.teaser-section video').forEach(video => {
+                video.playbackRate = 1.0;
+                video.addEventListener('play', () => { video.playbackRate = 1.0; });
+                video.addEventListener('ratechange', () => {
+                    if (video.playbackRate !== 1.0) video.playbackRate = 1.0;
+                });
+            });
             
             // Teaser and Film Strip JavaScript
             const teaserVideos = document.querySelectorAll('.teaser-section video');
